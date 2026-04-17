@@ -40,6 +40,25 @@ Each week, WCCRC publishes an updated PDF vacancy list. The workflow is:
 
 > "I downloaded a new vacancy list PDF. Please follow RUNBOOK.md to extract it into CSVs."
 
+### Automated download
+
+`check_vacancy.py` checks the WCCRC search page daily and downloads a new PDF to `data/` whenever the vacancy list is updated (the site updates every Friday).
+
+```bash
+# Run manually
+.venv/bin/python check_vacancy.py
+```
+
+A cron job runs this automatically at 9 AM every day. Logs are written to `logs/check_vacancy.log`.
+
+To set up the cron job on a new machine:
+
+```bash
+python3 -m venv .venv
+.venv/bin/pip install requests beautifulsoup4
+( crontab -l 2>/dev/null; echo "0 9 * * * /path/to/.venv/bin/python /path/to/check_vacancy.py >> /path/to/logs/check_vacancy.log 2>&1" ) | crontab -
+```
+
 ---
 
 ## Provider Directory
