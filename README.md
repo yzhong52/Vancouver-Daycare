@@ -27,9 +27,9 @@ enrich_vacancies.py
               (vacancies + matched provider details: address, languages, age groups, etc.)
         │
         ▼
-geocode.py
+geocode_vacancies.py
         │
-        └── vacancy_map.json
+        └── processed_data/geocoded_vacancies.csv
               (geocoded via BC Address Geocoder — free, no API key required)
         │
         ▼
@@ -45,7 +45,7 @@ python3 -m venv .venv
 .venv/bin/python download_childcare_pdfs.py
 .venv/bin/python parse_pdfs.py
 .venv/bin/python enrich_vacancies.py
-.venv/bin/python geocode.py
+.venv/bin/python geocode_vacancies.py
 
 open map.html   # or serve locally: python3 -m http.server
 ```
@@ -59,8 +59,8 @@ open map.html   # or serve locally: python3 -m http.server
 | `download_childcare_pdfs.py` | wstcoast.org | `data/*.pdf` | Downloads the weekly vacancy list PDF and the all-providers PDF |
 | `parse_pdfs.py` | `data/*.pdf` | `processed_data/providers.csv`, `processed_data/vacancies.csv` | Parses both PDFs into CSVs |
 | `enrich_vacancies.py` | `processed_data/*.csv` | `processed_data/enriched_vacancies.csv` | Fuzzy-matches each vacancy to its provider record (phone → email → name) |
-| `geocode.py` | `processed_data/enriched_vacancies.csv` | `vacancy_map.json` | Geocodes addresses via BC Address Geocoder |
-| `map.html` | `vacancy_map.json` | — | Interactive Leaflet map of current vacancies |
+| `geocode_vacancies.py` | `processed_data/enriched_vacancies.csv` | `processed_data/geocoded_vacancies.csv` | Geocodes addresses via BC Address Geocoder |
+| `map.html` | `processed_data/geocoded_vacancies.csv` | — | Interactive Leaflet map of current vacancies |
 
 ---
 
