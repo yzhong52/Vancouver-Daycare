@@ -4,91 +4,117 @@ Tools and data for researching child care providers in Vancouver using data from
 
 ---
 
-## Files
+## Pipeline
 
-| File | Description |
-|---|---|
-| `vacancy_list_<month>_<year>.csv` | Weekly vacancy list extracted from the WCCRC PDF |
-| `vacancy_list_<month>_<year>_under12months.csv` | Filtered subset: programs accepting infants under 12 months |
-| `child_care_providers.csv` | Full provider directory extracted from the WCCRC search page |
-| `parse_providers.py` | Script that generates `child_care_providers.csv` from the saved HTML |
-| `RUNBOOK.md` | Step-by-step instructions for repeating the weekly vacancy extraction |
+Each step feeds into the next. Run them in order to get a fresh map every week.
 
----
-
-## Vacancy List (weekly)
-
-Each week, WCCRC publishes an updated PDF vacancy list. The workflow is:
-
-1. Download the new PDF (filename: `Vacancy_List_Updated_-_<Month>_<Year>_-.pdf`)
-2. Ask Claude to extract it following `RUNBOOK.md`
-3. Claude produces two CSVs:
-   - **`vacancy_list_<month>_<year>.csv`** — all providers with open spots
-   - **`vacancy_list_<month>_<year>_under12months.csv`** — filtered for infant programs (under 12 months)
-
-### Columns
-
-| Column | Notes |
-|---|---|
-| Program Name | |
-| Provider Contact Date | Date the provider was last contacted, e.g. "April 10" |
-| Telephone/Email | Multiple values joined with ` / ` |
-| Neighbourhood | Vancouver neighbourhood |
-| Vacancies | Description of available spots |
-
-### Prompt to use next week
-
-> "I downloaded a new vacancy list PDF. Please follow RUNBOOK.md to extract it into CSVs."
-
-### Automated download
-
-`check_vacancy.py` checks the WCCRC search page daily and downloads a new PDF to `data/` whenever the vacancy list is updated (the site updates every Friday).
-
-```bash
-# Run manually
-.venv/bin/python check_vacancy.py
+```
+download_childcare_pdfs.py
+        │
+        ├── data/all_providers_YYYY-MM-DD.pdf
+        └── data/Vacancy_List_Updated_-_<Month>_<Year>_-.pdf
+        │
+        ▼
+parse_pdfs.py
+        │
+        ├── processed_data/providers.csv      (all ~766 registered providers)
+        └── processed_data/vacancies.csv      (current week's vacancies)
+        │
+        ▼
+enrich_vacancies.py
+        │
+        └── processed_data/enriched_vacancies.csv
+              (vacancies + matched provider details: address, languages, age groups, etc.)
+        │
+        ▼
+geocode.py
+        │
+        └── vacancy_map.json
+              (geocoded via BC Address Geocoder — free, no API key required)
+        │
+        ▼
+map.html   ← open in browser to view interactive map
 ```
 
-A cron job runs this automatically at 9 AM every day. Logs are written to `logs/check_vacancy.log`.
-
-To set up the cron job on a new machine:
+### Quick start
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install requests beautifulsoup4
-( crontab -l 2>/dev/null; echo "0 9 * * * /path/to/.venv/bin/python /path/to/check_vacancy.py >> /path/to/logs/check_vacancy.log 2>&1" ) | crontab -
+.venv/bin/pip install requests beautifulsoup4 pdfplumber rapidfuzz
+
+.venv/bin/python download_childcare_pdfs.py
+.venv/bin/python parse_pdfs.py
+.venv/bin/python enrich_vacancies.py
+.venv/bin/python geocode.py
+
+open map.html   # or serve locally: python3 -m http.server
 ```
 
 ---
 
-## Provider Directory
+## Scripts
 
-`child_care_providers.csv` is a full directory of all licensed child care providers registered with WCCRC in Vancouver. It was extracted from the WCCRC child care search page (saved as an HTML file).
+| Script | Input | Output | Description |
+|---|---|---|---|
+| `download_childcare_pdfs.py` | wstcoast.org | `data/*.pdf` | Downloads the weekly vacancy list PDF and the all-providers PDF |
+| `parse_pdfs.py` | `data/*.pdf` | `processed_data/providers.csv`, `processed_data/vacancies.csv` | Parses both PDFs into CSVs |
+| `enrich_vacancies.py` | `processed_data/*.csv` | `processed_data/enriched_vacancies.csv` | Fuzzy-matches each vacancy to its provider record (phone → email → name) |
+| `geocode.py` | `processed_data/enriched_vacancies.csv` | `vacancy_map.json` | Geocodes addresses via BC Address Geocoder |
+| `map.html` | `vacancy_map.json` | — | Interactive Leaflet map of current vacancies |
 
-### How it was generated
+---
 
-1. Opened the WCCRC child care search page and saved the full page as HTML
-2. Ran `parse_providers.py` against the saved HTML using BeautifulSoup
+## Output files
 
-To regenerate (e.g. after downloading a fresh copy of the search page):
-
-```bash
-/opt/homebrew/bin/python3 parse_providers.py
-```
-
-> Note: requires `beautifulsoup4`, installed in the Homebrew Python environment.
-
-### Columns
+### `processed_data/providers.csv`
+Full directory of all ~766 licensed providers registered with WCCRC. Overwritten each run; git tracks changes week-over-week.
 
 | Column | Notes |
 |---|---|
-| Program Name | |
-| Program Type | e.g. Licensed Family Child Care, Group Daycare (under 36 mths), In-Home Multi-Age Child Care |
-| Location | Street address |
-| Phone | |
-| Email | |
-| Website | Full URL if listed |
-| Languages | Semicolon-separated |
-| Age Groups | Semicolon-separated, e.g. `0 - 18 mo; 19 - 36 mo; 2.5 - 5 yrs` |
-| Curriculum | e.g. Montessori, Play Based, Reggio Inspired |
-| Schools Served | Semicolon-separated school names |
+| `name` | Program name |
+| `location` | Street address |
+| `phone` | |
+| `email` | |
+| `website` | |
+| `curriculum` | e.g. Montessori, Play Based, Reggio Inspired |
+| `languages` | Semicolon-separated |
+| `age_groups` | Semicolon-separated, e.g. `0 - 18 mo; 19 - 36 mo` |
+| `schools_served` | Semicolon-separated school names |
+
+### `processed_data/vacancies.csv`
+Current week's vacancy list. Overwritten each run; git tracks changes week-over-week.
+
+| Column | Notes |
+|---|---|
+| `name` | Program name |
+| `contact_date` | Date provider was last contacted, e.g. `April 10` |
+| `phone_email` | Raw contact string from PDF |
+| `neighbourhood` | Vancouver neighbourhood |
+| `vacancies` | Description of available spots |
+
+### `processed_data/enriched_vacancies.csv`
+Vacancies joined with provider details. The main working dataset.
+
+| Column | Notes |
+|---|---|
+| `name` | Program name |
+| `contact_date` | |
+| `neighbourhood` | |
+| `vacancies` | |
+| `location` | Street address (from providers directory) |
+| `phone` | |
+| `email` | |
+| `website` | |
+| `languages` | Semicolon-separated |
+| `age_groups` | Semicolon-separated |
+| `curriculum` | |
+| `match_method` | How the provider was matched: `phone`, `email`, or `name` |
+| `match_score` | Fuzzy name score (100 for phone/email matches) |
+
+---
+
+## Notes
+
+- **RLNR providers** (Registered Licensed-Not-Required, max 2 children) are home-based and often not in the provider directory, so they show up as unmatched with no address.
+- The BC Address Geocoder (`geocoder.api.gov.bc.ca`) is a free BC government API — no key required.
+- PDFs are excluded from git (see `.gitignore`). CSVs under `processed_data/` are tracked so you can diff changes week-over-week.
