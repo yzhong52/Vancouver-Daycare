@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vancouver Daycare Finder</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: #2c5f8a;
+      color: white;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    header h1 { font-size: 1rem; font-weight: 600; }
+
+    .birthday-form {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .birthday-form label {
+      font-size: 0.82rem;
+      opacity: 0.85;
+      white-space: nowrap;
+    }
+
+    .birthday-form input[type="date"] {
+      padding: 5px 10px;
+      border-radius: 6px;
+      border: none;
+      font-size: 0.85rem;
+      background: rgba(255,255,255,0.15);
+      color: white;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .birthday-form input[type="date"]::-webkit-calendar-picker-indicator {
+      filter: invert(1);
+      cursor: pointer;
+    }
+
+    .age-badge {
+      background: rgba(255,255,255,0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .count {
+      margin-left: auto;
+      background: rgba(255,255,255,0.2);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    #map { flex: 1; }
+
+    .no-results {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      padding: 24px 32px;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      text-align: center;
+      color: #555;
+      font-size: 0.9rem;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    /* Popup */
+    .popup {
+      font-size: 0.82rem;
+      line-height: 1.55;
+      min-width: 240px;
+      max-width: 300px;
+    }
+    .popup h3 { font-size: 0.92rem; margin-bottom: 2px; color: #2c5f8a; }
+    .popup .neighbourhood { font-size: 0.75rem; color: #888; margin-bottom: 8px; }
+    .popup .vacancy-box {
+      background: #fff8e1;
+      border-left: 3px solid #f5a623;
+      padding: 6px 8px;
+      border-radius: 0 4px 4px 0;
+      margin-bottom: 8px;
+      font-size: 0.82rem;
+    }
+    .popup .vacancy-box strong {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #b07d1a;
+      margin-bottom: 2px;
+    }
+    .popup table { width: 100%; border-collapse: collapse; }
+    .popup td { padding: 2px 4px 2px 0; vertical-align: top; }
+    .popup td:first-child {
+      font-weight: 600; color: #555; white-space: nowrap;
+      padding-right: 8px; font-size: 0.78rem;
+    }
+    .popup a { color: #2c5f8a; }
+    .popup .date-tag {
+      display: inline-block;
+      background: #e8f4e8;
+      color: #2a6b2a;
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 0.72rem;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Vancouver Daycare Finder</h1>
+  <div class="birthday-form">
+    <label for="birthday">Child's birthday:</label>
+    <input type="date" id="birthday" max="">
+  </div>
+  <span class="age-badge" id="age-label">Enter birthday to filter</span>
+  <span class="count" id="count"></span>
+</header>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // --- Map setup ---
+  const map = L.map("map").setView([49.245, -123.13], 13);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    maxZoom: 19,
+  }).addTo(map);
+
+  // Cap birthday picker at today
+  document.getElementById("birthday").max = new Date().toISOString().split("T")[0];
+
+  // --- Age helpers ---
+  function ageInMonths(birthdayStr) {
+    const now = new Date();
+    const birth = new Date(birthdayStr);
+    return (now.getFullYear() - birth.getFullYear()) * 12
+         + (now.getMonth() - birth.getMonth())
+         - (now.getDate() < birth.getDate() ? 1 : 0);
+  }
+
+  function formatAge(months) {
+    if (months < 24) return `${months} month${months === 1 ? "" : "s"} old`;
+    const yrs = Math.floor(months / 12);
+    const mo  = months % 12;
+    return mo > 0 ? `${yrs} yr ${mo} mo old` : `${yrs} years old`;
+  }
+
+  // Parse "0 - 18 mo" → [0, 18], "2.5 - 5 yrs" → [30, 60]
+  function parseAgeRange(str) {
+    const mo = str.match(/^([\d.]+)\s*-\s*([\d.]+)\s*mo$/);
+    if (mo) return [parseFloat(mo[1]), parseFloat(mo[2])];
+    const yr = str.match(/^([\d.]+)\s*-\s*([\d.]+)\s*yrs?$/);
+    if (yr) return [Math.round(parseFloat(yr[1]) * 12), Math.round(parseFloat(yr[2]) * 12)];
+    return null;
+  }
+
+  function providerMatchesAge(ageGroups, childMonths) {
+    return ageGroups.split(";").map(s => s.trim()).some(g => {
+      const range = parseAgeRange(g);
+      return range && childMonths >= range[0] && childMonths <= range[1];
+    });
+  }
+
+  // --- CSV parser ---
+  function parseCSV(text) {
+    const [headerLine, ...lines] = text.trim().split("\n");
+    const headers = headerLine.split(",");
+    return lines.map(line => {
+      const values = [];
+      let cur = "", inQuote = false;
+      for (const ch of line) {
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === "," && !inQuote) { values.push(cur); cur = ""; }
+        else { cur += ch; }
+      }
+      values.push(cur);
+      return Object.fromEntries(headers.map((h, i) => [h, values[i] ?? ""]));
+    });
+  }
+
+  // --- Popup ---
+  function buildPopup(p) {
+    const details = [
+      ["Address",   p.address],
+      p.phone   ? ["Phone",    `<a href="tel:${p.phone}">${p.phone}</a>`]             : null,
+      p.email   ? ["Email",    `<a href="mailto:${p.email}">${p.email}</a>`]           : null,
+      p.website ? ["Website",  `<a href="http://${p.website}" target="_blank">Visit ↗</a>`] : null,
+      p.languages  ? ["Languages",  p.languages]  : null,
+      p.age_groups ? ["Age groups", p.age_groups] : null,
+      p.curriculum ? ["Curriculum", p.curriculum] : null,
+    ].filter(Boolean);
+
+    return `
+      <div class="popup">
+        <h3>${p.name}</h3>
+        <div class="neighbourhood">${p.neighbourhood}</div>
+        <span class="date-tag">Contacted: ${p.contact_date}</span>
+        <div class="vacancy-box">
+          <strong>Vacancy</strong>
+          ${p.vacancies}
+        </div>
+        <table>
+          ${details.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join("")}
+        </table>
+      </div>`;
+  }
+
+  // --- Marker layer ---
+  let markerLayer = L.layerGroup().addTo(map);
+  let noResultsEl = null;
+  let allData = [];
+
+  function renderMarkers(data) {
+    markerLayer.clearLayers();
+    if (noResultsEl) { noResultsEl.remove(); noResultsEl = null; }
+
+    const mappable = data.filter(p => p.lat && p.lng);
+
+    if (data.length > 0 && mappable.length === 0) {
+      noResultsEl = document.createElement("div");
+      noResultsEl.className = "no-results";
+      noResultsEl.textContent = "No matching daycares with known addresses found.";
+      document.getElementById("map").appendChild(noResultsEl);
+    }
+
+    mappable.forEach(p => {
+      L.marker([parseFloat(p.lat), parseFloat(p.lng)])
+        .bindPopup(buildPopup(p), { maxWidth: 320 })
+        .addTo(markerLayer);
+    });
+
+    document.getElementById("count").textContent =
+      `${data.length} matching provider${data.length !== 1 ? "s" : ""}`;
+
+    if (mappable.length) {
+      map.fitBounds(mappable.map(p => [parseFloat(p.lat), parseFloat(p.lng)]), { padding: [40, 40] });
+    }
+  }
+
+  function applyFilter() {
+    const val = document.getElementById("birthday").value;
+    if (!val) {
+      document.getElementById("age-label").textContent = "Enter birthday to filter";
+      document.getElementById("count").textContent = `${allData.length} providers`;
+      renderMarkers(allData);
+      return;
+    }
+
+    const months = ageInMonths(val);
+    document.getElementById("age-label").textContent = formatAge(months);
+
+    const filtered = allData.filter(p =>
+      !p.age_groups || providerMatchesAge(p.age_groups, months)
+    );
+    renderMarkers(filtered);
+  }
+
+  document.getElementById("birthday").addEventListener("change", applyFilter);
+
+  // --- Load data ---
+  fetch("processed_data/geocoded_vacancies.csv")
+    .then(r => {
+      if (!r.ok) throw new Error("processed_data/geocoded_vacancies.csv not found — run geocode_vacancies.py first.");
+      return r.text();
+    })
+    .then(text => {
+      allData = parseCSV(text);
+      applyFilter();
+    })
+    .catch(err => {
+      document.getElementById("map").innerHTML =
+        `<div style="padding:40px;color:#a33">${err.message}</div>`;
+    });
+</script>
+</body>
+</html>

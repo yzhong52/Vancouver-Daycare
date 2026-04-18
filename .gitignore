@@ -1,5 +1,7 @@
 *.pdf
 *.html
+!index.html
+!map.html
 *_files/
 data/
 logs/
