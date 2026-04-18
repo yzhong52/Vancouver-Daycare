@@ -7,6 +7,7 @@ matching, with phone/email as tiebreakers. Outputs processed_data/enriched_vacan
 """
 
 import csv
+import logging
 import re
 import sys
 from pathlib import Path
@@ -16,6 +17,18 @@ from rapidfuzz import fuzz, process
 PROVIDERS_CSV = Path("processed_data/providers.csv")
 VACANCIES_CSV = Path("processed_data/vacancies.csv")
 OUTPUT_CSV = Path("processed_data/enriched_vacancies.csv")
+LOG_FILE = Path("logs/enrich_vacancies.log")
+
+LOG_FILE.parent.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(),
+    ],
+)
+log = logging.getLogger(__name__)
 
 NAME_SCORE_THRESHOLD = 75  # minimum fuzzy name score to accept a match
 
@@ -62,7 +75,7 @@ def find_provider(vacancy: dict, providers: list[dict]) -> tuple[dict, float, st
 def main() -> None:
     for path in (PROVIDERS_CSV, VACANCIES_CSV):
         if not path.exists():
-            print(f"Error: {path} not found. Run parse_pdfs.py first.", file=sys.stderr)
+            log.error(f"{path} not found. Run parse_pdfs.py first.")
             sys.exit(1)
 
     with open(PROVIDERS_CSV, encoding="utf-8") as f:
@@ -108,12 +121,12 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
 
-    print(f"Wrote {len(rows)} rows → {OUTPUT_CSV}")
+    log.info(f"Wrote {len(rows)} rows → {OUTPUT_CSV}")
 
     if unmatched:
-        print(f"\nNo provider match found for {len(unmatched)} vacancies:")
+        log.warning(f"No provider match found for {len(unmatched)} vacancies:")
         for name in unmatched:
-            print(f"  - {name}")
+            log.warning(f"  - {name}")
 
 
 if __name__ == "__main__":

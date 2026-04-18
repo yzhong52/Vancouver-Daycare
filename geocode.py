@@ -9,6 +9,7 @@ Usage:
 
 import csv
 import json
+import logging
 import time
 import urllib.parse
 import urllib.request
@@ -16,7 +17,19 @@ from pathlib import Path
 
 INPUT_CSV = Path("processed_data/enriched_vacancies.csv")
 OUTPUT_JSON = Path("vacancy_map.json")
+LOG_FILE = Path("logs/geocode.log")
 GEOCODER_URL = "https://geocoder.api.gov.bc.ca/addresses.json"
+
+LOG_FILE.parent.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(),
+    ],
+)
+log = logging.getLogger(__name__)
 
 
 def geocode(address: str) -> tuple[float | None, float | None, int]:
@@ -34,13 +47,13 @@ def geocode(address: str) -> tuple[float | None, float | None, int]:
             score = features[0]["properties"].get("score", 0)
             return coords[1], coords[0], score  # lat, lng, score
     except Exception as e:
-        print(f"  ERROR: {e}")
+        log.error(e)
     return None, None, 0
 
 
 def main() -> None:
     if not INPUT_CSV.exists():
-        print(f"Error: {INPUT_CSV} not found. Run enrich_vacancies.py first.")
+        log.error(f"{INPUT_CSV} not found. Run enrich_vacancies.py first.")
         return
 
     with open(INPUT_CSV, encoding="utf-8") as f:
@@ -50,12 +63,12 @@ def main() -> None:
     for i, row in enumerate(rows):
         address = row["location"].strip()
         if not address:
-            print(f"[{i+1}/{len(rows)}] SKIP (no address): {row['name']}")
+            log.info(f"[{i+1}/{len(rows)}] SKIP (no address): {row['name']}")
             lat, lng, score = None, None, 0
         else:
             lat, lng, score = geocode(address)
             status = f"OK (score={score})" if lat else "FAIL"
-            print(f"[{i+1}/{len(rows)}] {status}: {address}")
+            log.info(f"[{i+1}/{len(rows)}] {status}: {address}")
             time.sleep(0.15)  # be polite to the API
 
         results.append({
@@ -79,7 +92,7 @@ def main() -> None:
         json.dump(results, f, indent=2)
 
     placed = sum(1 for r in results if r["lat"])
-    print(f"\nDone. {placed}/{len(results)} geocoded → {OUTPUT_JSON}")
+    log.info(f"Done. {placed}/{len(results)} geocoded → {OUTPUT_JSON}")
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ Download Vancouver Child Care PDFs from wstcoast.org:
   - All-providers list (generated via the Printable PDF endpoint with no filters)
 """
 
+import logging
 import re
 import sys
 from datetime import date
@@ -16,6 +17,18 @@ from bs4 import BeautifulSoup
 SEARCH_PAGE = "https://www.wstcoast.org/choosing-child-care/search"
 PDF_ENDPOINT = "https://www.wstcoast.org/choosing-child-care/search/pdf/1609"
 DATA_DIR = Path(__file__).parent / "data"
+LOG_FILE = Path(__file__).parent / "logs" / "download_childcare_pdfs.log"
+
+LOG_FILE.parent.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(),
+    ],
+)
+log = logging.getLogger(__name__)
 
 USER_AGENT = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
@@ -40,14 +53,14 @@ def download_vacancy_list(session: requests.Session, page: requests.Response) ->
     url = tag["href"]
     dest = DATA_DIR / url.split("/")[-1]
     if dest.exists():
-        print(f"Vacancy list already up to date: {dest.name}")
+        log.info(f"Vacancy list already up to date: {dest.name}")
         return
 
-    print(f"Downloading vacancy list: {dest.name}")
+    log.info(f"Downloading vacancy list: {dest.name}")
     resp = session.get(url, timeout=60)
     resp.raise_for_status()
     dest.write_bytes(resp.content)
-    print(f"Saved: {dest} ({len(resp.content) // 1024} KB)")
+    log.info(f"Saved: {dest} ({len(resp.content) // 1024} KB)")
 
 
 def download_all_providers(session: requests.Session, page: requests.Response) -> None:
@@ -65,10 +78,10 @@ def download_all_providers(session: requests.Session, page: requests.Response) -
     dest = DATA_DIR / f"all_providers_{today}.pdf"
 
     if dest.exists():
-        print(f"All-providers PDF already downloaded: {dest.name}")
+        log.info(f"All-providers PDF already downloaded: {dest.name}")
         return
 
-    print(f"Downloading all-providers PDF...")
+    log.info(f"Downloading all-providers PDF...")
     resp = session.get(
         PDF_ENDPOINT,
         params={
@@ -93,7 +106,7 @@ def download_all_providers(session: requests.Session, page: requests.Response) -
     with open(dest, "wb") as f:
         for chunk in resp.iter_content(chunk_size=8192):
             f.write(chunk)
-    print(f"Saved: {dest}")
+    log.info(f"Saved: {dest}")
 
 
 def main() -> None:
@@ -106,7 +119,7 @@ def main() -> None:
             download_vacancy_list(session, page)
             download_all_providers(session, page)
         except Exception as e:
-            print(f"Error: {e}", file=sys.stderr)
+            log.error(f"Error: {e}")
             sys.exit(1)
 
 

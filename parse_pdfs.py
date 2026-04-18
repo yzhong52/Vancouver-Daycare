@@ -6,6 +6,7 @@ Parse downloaded childcare PDFs into CSVs:
 """
 
 import csv
+import logging
 import re
 import sys
 from pathlib import Path
@@ -14,6 +15,18 @@ import pdfplumber
 
 DATA_DIR = Path("data")
 OUT_DIR = Path("processed_data")
+LOG_FILE = Path("logs/parse_pdfs.log")
+
+LOG_FILE.parent.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(),
+    ],
+)
+log = logging.getLogger(__name__)
 
 # Field labels as they appear in the providers PDF
 LEFT_LABELS = ["Location", "Phone", "Email", "Website"]
@@ -163,7 +176,7 @@ def write_csv(path: Path, rows: list[dict], fieldnames: list[str]) -> None:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
-    print(f"Wrote {len(rows)} rows → {path}")
+    log.info(f"Wrote {len(rows)} rows → {path}")
 
 
 def latest(pattern: str) -> Path:
@@ -180,10 +193,10 @@ def main() -> None:
         providers_pdf = latest("all_providers_*.pdf")
         vacancies_pdf = latest("Vacancy_List_*.pdf")
     except FileNotFoundError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        log.error(e)
         sys.exit(1)
 
-    print(f"Parsing providers: {providers_pdf.name}")
+    log.info(f"Parsing providers: {providers_pdf.name}")
     providers = parse_providers(providers_pdf)
     write_csv(
         OUT_DIR / "providers.csv",
@@ -192,7 +205,7 @@ def main() -> None:
          "curriculum", "languages", "age_groups", "schools_served"],
     )
 
-    print(f"Parsing vacancies: {vacancies_pdf.name}")
+    log.info(f"Parsing vacancies: {vacancies_pdf.name}")
     vacancies = parse_vacancies(vacancies_pdf)
     write_csv(
         OUT_DIR / "vacancies.csv",
