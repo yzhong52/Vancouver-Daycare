@@ -1,0 +1,4 @@
+beautifulsoup4==4.14.3
+pdfplumber==0.11.9
+rapidfuzz==3.14.5
+requests==2.33.1

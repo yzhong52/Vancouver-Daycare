@@ -12,6 +12,7 @@ permissions:
 jobs:
   refresh:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -20,9 +21,10 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: requirements.txt
 
       - name: Install dependencies
-        run: pip install requests beautifulsoup4 pdfplumber rapidfuzz
+        run: pip install -r requirements.txt
 
       - name: Run refresh pipeline
         run: python refresh.py
@@ -38,7 +40,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           DATE=$(date +%Y-%m-%d)
-          BRANCH="data/refresh-${DATE}"
+          RUN_ID=${{ github.run_id }}
+          BRANCH="data/refresh-${DATE}-${RUN_ID}"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

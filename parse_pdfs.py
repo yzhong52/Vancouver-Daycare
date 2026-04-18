@@ -13,9 +13,10 @@ from pathlib import Path
 
 import pdfplumber
 
-DATA_DIR = Path("data")
-OUT_DIR = Path("processed_data")
-LOG_FILE = Path("logs/parse_pdfs.log")
+_ROOT = Path(__file__).parent
+DATA_DIR = _ROOT / "data"
+OUT_DIR = _ROOT / "processed_data"
+LOG_FILE = _ROOT / "logs" / "parse_pdfs.log"
 
 LOG_FILE.parent.mkdir(exist_ok=True)
 logging.basicConfig(
@@ -121,13 +122,14 @@ def parse_block(block: str) -> dict:
 
 
 def parse_providers(pdf_path: Path) -> list[dict]:
-    full_text = ""
+    pages = []
     with pdfplumber.open(pdf_path) as pdf:
         for page in pdf.pages:
             text = page.extract_text() or ""
             text = re.sub(r"^Child Care Search Results\n", "", text)
             text = re.sub(r"\n\d+$", "", text)
-            full_text += "\n" + text
+            pages.append(text)
+    full_text = "\n".join(pages)
 
     # Each entry: single-line name → "Contact Details:" → fields block
     # Lookahead stops fields before the next entry's name+header

@@ -10,14 +10,16 @@ Usage:
 import csv
 import json
 import logging
+import sys
 import time
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
-INPUT_CSV = Path("processed_data/enriched_vacancies.csv")
-OUTPUT_CSV = Path("processed_data/geocoded_vacancies.csv")
-LOG_FILE = Path("logs/geocode_vacancies.log")
+_ROOT = Path(__file__).parent
+INPUT_CSV  = _ROOT / "processed_data" / "enriched_vacancies.csv"
+OUTPUT_CSV = _ROOT / "processed_data" / "geocoded_vacancies.csv"
+LOG_FILE   = _ROOT / "logs" / "geocode_vacancies.log"
 GEOCODER_URL = "https://geocoder.api.gov.bc.ca/addresses.json"
 
 FIELDNAMES = [
@@ -60,7 +62,7 @@ def geocode(address: str) -> tuple[float | None, float | None, int]:
 def main() -> None:
     if not INPUT_CSV.exists():
         log.error(f"{INPUT_CSV} not found. Run enrich_vacancies.py first.")
-        return
+        sys.exit(1)
 
     with open(INPUT_CSV, encoding="utf-8") as f:
         rows = list(csv.DictReader(f))

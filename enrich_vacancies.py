@@ -14,10 +14,11 @@ from pathlib import Path
 
 from rapidfuzz import fuzz, process
 
-PROVIDERS_CSV = Path("processed_data/providers.csv")
-VACANCIES_CSV = Path("processed_data/vacancies.csv")
-OUTPUT_CSV = Path("processed_data/enriched_vacancies.csv")
-LOG_FILE = Path("logs/enrich_vacancies.log")
+_ROOT = Path(__file__).parent
+PROVIDERS_CSV = _ROOT / "processed_data" / "providers.csv"
+VACANCIES_CSV = _ROOT / "processed_data" / "vacancies.csv"
+OUTPUT_CSV    = _ROOT / "processed_data" / "enriched_vacancies.csv"
+LOG_FILE      = _ROOT / "logs" / "enrich_vacancies.log"
 
 LOG_FILE.parent.mkdir(exist_ok=True)
 logging.basicConfig(
@@ -126,7 +127,7 @@ def main() -> None:
     if unmatched:
         log.warning(f"No provider match found for {len(unmatched)} vacancies:")
         for name in unmatched:
-            log.warning(f"  - {name}")
+            log.warning(f"unmatched: {name}")
 
 
 if __name__ == "__main__":
