@@ -2,6 +2,8 @@
 
 Tools and data for researching child care providers in Vancouver using data from the [Westcoast Child Care Resource Centre (WCCRC)](https://www.wstcoast.org).
 
+**Live site:** [vandaycare.ca](https://vandaycare.ca) · [yzhong52.github.io/Vancouver-Daycare](https://yzhong52.github.io/Vancouver-Daycare/)
+
 ---
 
 ## Pipeline
