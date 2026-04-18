@@ -42,13 +42,14 @@ map.html   ← open in browser to view interactive map
 python3 -m venv .venv
 .venv/bin/pip install requests beautifulsoup4 pdfplumber rapidfuzz
 
-.venv/bin/python download_childcare_pdfs.py
-.venv/bin/python parse_pdfs.py
-.venv/bin/python enrich_vacancies.py
-.venv/bin/python geocode_vacancies.py
+.venv/bin/python refresh.py   # runs all steps in sequence
 
-open map.html   # or serve locally: python3 -m http.server
+python3 -m http.server        # then open http://localhost:8000/index.html
 ```
+
+### Automation
+
+A GitHub Actions workflow (`.github/workflows/refresh.yml`) runs `refresh.py` every 48 hours, commits any changes to `processed_data/`, and opens a pull request for review. It can also be triggered manually from the GitHub Actions tab.
 
 ---
 

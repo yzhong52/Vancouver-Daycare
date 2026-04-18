@@ -1,0 +1,69 @@
+name: Refresh Childcare Data
+
+on:
+  schedule:
+    - cron: "0 9 */2 * *"   # every 2 days at 9am UTC
+  workflow_dispatch:          # allow manual trigger from GitHub UI
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install requests beautifulsoup4 pdfplumber rapidfuzz
+
+      - name: Run refresh pipeline
+        run: python refresh.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git diff --quiet processed_data/ && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Open pull request
+        if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DATE=$(date +%Y-%m-%d)
+          BRANCH="data/refresh-${DATE}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git checkout -b "${BRANCH}"
+          git add processed_data/
+          git commit -m "Data refresh ${DATE}"
+          git push origin "${BRANCH}"
+
+          gh pr create \
+            --title "Data refresh ${DATE}" \
+            --body "$(cat <<'EOF'
+          ## Automated data refresh
+
+          - Downloaded latest vacancy list and all-providers PDFs from wstcoast.org
+          - Parsed PDFs into \`processed_data/providers.csv\` and \`processed_data/vacancies.csv\`
+          - Enriched vacancies with provider details → \`processed_data/enriched_vacancies.csv\`
+          - Geocoded addresses → \`processed_data/geocoded_vacancies.csv\`
+
+          Review the diff to see which providers/vacancies changed this week.
+          EOF
+          )" \
+            --base main \
+            --head "${BRANCH}"
+
+      - name: No changes
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "No changes to processed data — skipping PR."
