@@ -1,0 +1,91 @@
+[
+  {
+    "id": "m1745ced",
+    "name": "Simba Daycare",
+    "address": "4150 Canterbury Crescent, North Vancouver, BC",
+    "neighbourhood": "North Vancouver",
+    "contact_date": "April 2026",
+    "phone": "236-808-6025",
+    "email": "",
+    "website": "",
+    "languages": "English",
+    "age_groups": "",
+    "curriculum": "Play Based",
+    "vacancies": "Limited spots available. Hours: 7:30 AM – 5:30 PM. Healthy homemade snacks and lunch provided. Hourly and daily care options available.",
+    "notes": "From Facebook/social media post. Home daycare (RLNR likely). No age range specified in post.",
+    "lat": 49.3479223,
+    "lng": -123.0905801
+  }
+,
+  {
+    "id": "m1745cee",
+    "name": "Indigo Meadow",
+    "address": "950 Taylor Place, West Vancouver, BC",
+    "neighbourhood": "West Vancouver",
+    "contact_date": "April 2026",
+    "phone": "778-814-2945",
+    "email": "",
+    "website": "www.indigomeadowlc.ca",
+    "languages": "English; French",
+    "age_groups": "3 - 12 yrs",
+    "curriculum": "Reggio Emilia",
+    "vacancies": "1 spot available for a child aged 3+. Hours: 7:00 AM – 5:30 PM. Homemade lunch & two healthy snacks provided. Yoga, puppet show, French, gardening.",
+    "notes": "From Facebook/social media post. Home daycare near English Bay. Nature-based, Reggio Emilia.",
+    "lat": 49.3330833,
+    "lng": -123.134217
+  }
+,
+  {
+    "id": "m1745cef",
+    "name": "A Miracle Child Care",
+    "address": "Kensington Square, North Burnaby, BC",
+    "neighbourhood": "North Burnaby",
+    "contact_date": "April 2026",
+    "phone": "672-513-2463",
+    "email": "helloamiracle@gmail.com",
+    "website": "",
+    "languages": "English",
+    "age_groups": "6 - 36 mo",
+    "curriculum": "",
+    "vacancies": "1 spot available for a child aged 6–36 months. Licensed group daycare. Hours: 8:00 AM – 5:00 PM. Start date: now or May 2026.",
+    "notes": "From Facebook/social media post. No street address given — pinned near Kensington Square (approximate). No daycare name in post; 'A Miracle' inferred from email. Follow up for exact address.",
+    "lat": 49.258277,
+    "lng": -122.9684443
+  }
+,
+  {
+    "id": "m1745cf0",
+    "name": "Moberly Childcare Centre",
+    "address": "700 59th Avenue East, Vancouver, BC",
+    "neighbourhood": "Sunset",
+    "contact_date": "April 2026",
+    "phone": "778-682-9477",
+    "email": "moberlychildcare@outlook.com",
+    "website": "moberlychildcare.ca",
+    "languages": "English",
+    "age_groups": "0 - 36 mo",
+    "curriculum": "",
+    "vacancies": "Limited spots available for May–December 2026 enrolment. Infant & Toddler program for children under 36 months. Licensed by Vancouver Coastal Health. 8 locations across the Sunset Community.",
+    "notes": "From Facebook/social media post. Has 8 locations in Sunset — pinned to Learning Centre (700 59th Ave E) as representative. Other locations: 1052 E 61st Ave, 7751 Prince Albert St, 2043 E 61st Ave, 2228 Fraserview Dr, 6905 Victoria Dr, 1356 E 35th Ave.",
+    "lat": 49.2164087,
+    "lng": -123.0906405
+  }
+,
+  {
+    "id": "m1745cf1",
+    "name": "Ravens Nest Outdoor Kids",
+    "address": "3941 Point Grey Road, Vancouver, BC",
+    "neighbourhood": "Kitsilano",
+    "contact_date": "April 2026",
+    "phone": "604-970-9257",
+    "email": "",
+    "website": "",
+    "languages": "English",
+    "age_groups": "1 - 7 yrs",
+    "curriculum": "Nature Based",
+    "vacancies": "Spots available. Outdoor program at Jericho Beach — beach and forest play, sandcastles, fort building, climbing, bugs/crabs, crafts, music, and storytime. All-weather. Ages 1–7 years.",
+    "notes": "From Facebook/social media post. Outdoor nature program at Jericho Beach Park. Pinned to park entrance (3941 Point Grey Rd).",
+    "lat": 49.2694259,
+    "lng": -123.1936028
+  }
+]

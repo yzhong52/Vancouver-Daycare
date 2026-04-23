@@ -2,6 +2,7 @@
 *.html
 !index.html
 !map.html
+!admin.html
 *_files/
 data/
 logs/
