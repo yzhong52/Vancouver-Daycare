@@ -296,6 +296,22 @@
     mapEl.appendChild(overlayEl);
   }
 
+  // --- Colored marker icons ---
+  function makePinIcon(color) {
+    return L.divIcon({
+      className: "",
+      html: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="38" viewBox="0 0 24 38">
+        <path fill="${color}" stroke="rgba(0,0,0,0.25)" stroke-width="1" d="M12 0C5.4 0 0 5.4 0 12c0 9 12 26 12 26S24 21 24 12C24 5.4 18.6 0 12 0z"/>
+        <circle fill="rgba(255,255,255,0.9)" cx="12" cy="12" r="4.5"/>
+      </svg>`,
+      iconSize: [24, 38],
+      iconAnchor: [12, 38],
+      popupAnchor: [0, -38],
+    });
+  }
+  const iconAuto   = makePinIcon("#2c5f8a");
+  const iconManual = makePinIcon("#d96c00");
+
   // --- Markers ---
   let markerLayer = L.layerGroup().addTo(map);
   let allData = [];
@@ -317,7 +333,8 @@
     }
 
     mappable.forEach(({ p, lat, lng }) => {
-      L.marker([lat, lng])
+      const icon = p._source === "manual" ? iconManual : iconAuto;
+      L.marker([lat, lng], { icon })
         .bindPopup(buildPopup(p), { maxWidth: 320 })
         .addTo(markerLayer);
     });
@@ -362,13 +379,36 @@
 
   // --- Load ---
   setOverlay("Loading…");
-  fetch("processed_data/geocoded_vacancies.csv")
-    .then(r => {
-      if (!r.ok) throw new Error("processed_data/geocoded_vacancies.csv not found — run geocode_vacancies.py first.");
-      return r.text();
-    })
-    .then(text => {
-      allData = parseCSV(text);
+  Promise.all([
+    fetch("processed_data/geocoded_vacancies.csv")
+      .then(r => {
+        if (!r.ok) throw new Error("processed_data/geocoded_vacancies.csv not found — run geocode_vacancies.py first.");
+        return r.text();
+      })
+      .then(text => parseCSV(text).map(p => ({ ...p, _source: "auto" }))),
+
+    fetch("processed_data/additional_vacancies.json?_=" + Date.now())
+      .then(r => r.ok ? r.json() : [])
+      .then(items => items.filter(v => v.lat && v.lng).map(v => ({
+        name:         v.name ?? "",
+        address:      v.address ?? "",
+        neighbourhood:v.neighbourhood ?? "",
+        phone:        v.phone ?? "",
+        email:        v.email ?? "",
+        website:      v.website ?? "",
+        languages:    v.languages ?? "",
+        age_groups:   v.age_groups ?? "",
+        curriculum:   v.curriculum ?? "",
+        contact_date: v.contact_date ?? "",
+        vacancies:    v.vacancies ?? "",
+        lat:          v.lat,
+        lng:          v.lng,
+        _source:      "manual",
+      })))
+      .catch(() => []),
+  ])
+    .then(([autoData, manualData]) => {
+      allData = [...autoData, ...manualData];
       applyFilter();
     })
     .catch(err => {
