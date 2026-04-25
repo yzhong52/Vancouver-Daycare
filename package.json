@@ -1,0 +1,19 @@
+{
+  "name": "vancouver-daycare",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@types/leaflet": "^1.9.14",
+    "typescript": "^5.7.2",
+    "vite": "^6.3.2",
+    "vite-plugin-static-copy": "^2.3.0"
+  },
+  "dependencies": {
+    "leaflet": "^1.9.4"
+  }
+}
