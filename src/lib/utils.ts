@@ -1,5 +1,6 @@
-export function esc(s: unknown): string {
-  return String(s ?? "")
+// Escapes a value for safe HTML insertion; undefined becomes "".
+export function esc(s: string | undefined): string {
+  return (s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
