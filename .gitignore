@@ -6,3 +6,5 @@
 *_files/
 data/
 logs/
+node_modules/
+dist/
