@@ -15,6 +15,9 @@ export function formatAge(months: number): string {
   return mo > 0 ? `${yrs} yr ${mo} mo old` : `${yrs} years old`;
 }
 
+// TODO: `ageGroups` is a raw semicolon-delimited string that gets re-parsed on every call.
+// Consider pre-parsing it into a typed structure (e.g. `{ minMonths: number; maxMonths: number }[]`)
+// so callers hold structured data and this function just does a range check.
 export function providerMatchesAge(ageGroups: string, childMonths: number): boolean {
   return ageGroups
     .split(";")
