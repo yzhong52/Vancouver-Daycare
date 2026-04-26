@@ -51,7 +51,7 @@ geocode_vacancies.py        →  processed_data/geocoded_vacancies.csv
 
 ### Frontend (TypeScript + Vite + Leaflet)
 
-Entry points are `index.html` and `admin.html`; map source lives in `src/`. Vite builds to `dist/`, which GitHub Actions deploys to GitHub Pages.
+Entry points are `index.html` and `admin.html`; source lives in `src/`. Vite builds to `dist/`, which GitHub Actions deploys to GitHub Pages.
 
 ```
 src/
@@ -61,6 +61,9 @@ src/
     age.ts        ← ageInMonths(), formatAge(), providerMatchesAge()
   map/
     main.ts       ← map page logic
+    style.css
+  admin/
+    main.ts       ← admin CRUD logic
     style.css
 ```
 
