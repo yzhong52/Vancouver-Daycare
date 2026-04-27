@@ -88,4 +88,22 @@
     "lat": 49.2694259,
     "lng": -123.1936028
   }
+,
+  {
+    "id": "m1745cf2",
+    "name": "Luma Childcare",
+    "address": "659 E St James Rd, North Vancouver, BC V7N 1L7",
+    "neighbourhood": "North Vancouver",
+    "contact_date": "2026-04-26",
+    "phone": "604-442-0035",
+    "email": "",
+    "website": "",
+    "languages": "English",
+    "age_groups": "0 - 5 yrs",
+    "curriculum": "Play Based",
+    "vacancies": "Spots available. Full-time, Part-time, and Weekend care. Hours: 7:30 AM – 5:30 PM. $200 off first month for new registrations.",
+    "notes": "From Facebook/social media post. Licensed home daycare. No street number given — coordinates from Google Maps listing. Instagram: luma_childcare.",
+    "lat": 49.338984,
+    "lng": -123.0585965
+  }
 ]
