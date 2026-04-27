@@ -9,3 +9,4 @@ logs/
 node_modules/
 dist/
 .vite/
+.claude/settings.local.json
