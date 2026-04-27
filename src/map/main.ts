@@ -5,11 +5,15 @@ import { esc, safeHref, parseCSV } from "../lib/utils";
 import { ageInMonths, formatAge, providerMatchesAge } from "../lib/age";
 import type { MapEntry, Vacancy } from "../lib/types";
 
-const mapEl = document.getElementById("map")!;
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+
+const mapEl      = document.getElementById("map")!;
 const birthdayEl = document.getElementById("birthday") as HTMLInputElement;
-const clearBtn = document.getElementById("clear-btn") as HTMLButtonElement;
+const clearBtn   = document.getElementById("clear-btn") as HTMLButtonElement;
 const ageLabelEl = document.getElementById("age-label")!;
-const countEl = document.getElementById("count")!;
+const countEl    = document.getElementById("count")!;
+
+// ─── Map setup ────────────────────────────────────────────────────────────────
 
 const map = L.map("map").setView([49.245, -123.13], 13);
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -18,6 +22,8 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 }).addTo(map);
 
 birthdayEl.max = new Date().toISOString().split("T")[0];
+
+// ─── UI helpers ───────────────────────────────────────────────────────────────
 
 function buildPopup(p: MapEntry): string {
   const details: [string, string][] = [
@@ -69,6 +75,8 @@ function makePinIcon(color: string): L.DivIcon {
 const iconAuto   = makePinIcon("#2c5f8a");
 const iconManual = makePinIcon("#d96c00");
 
+// ─── Markers ──────────────────────────────────────────────────────────────────
+
 const markerLayer = L.layerGroup().addTo(map);
 let allData: MapEntry[] = [];
 let initialBoundsFit = false;
@@ -76,41 +84,39 @@ let initialBoundsFit = false;
 function renderMarkers(data: MapEntry[]): void {
   markerLayer.clearLayers();
 
-  const mappable = data
-    .filter((p) => p.lat && p.lng)
-    .map((p) => ({ p, lat: parseFloat(String(p.lat)), lng: parseFloat(String(p.lng)) }));
+  type Pinnable = MapEntry & { lat: number; lng: number };
+  const pinnable = data.filter((p): p is Pinnable => p.lat !== null && p.lng !== null);
 
   if (data.length === 0) {
     setOverlay("<strong>No matches</strong>No daycares match this age group.");
-  } else if (mappable.length === 0) {
+  } else if (pinnable.length === 0) {
     setOverlay("<strong>No map locations</strong>Matching providers found but none have known addresses.");
   } else {
     setOverlay(null);
   }
 
-  mappable.forEach(({ p, lat, lng }) => {
+  pinnable.forEach((p) => {
     const icon = p._source === "manual" ? iconManual : iconAuto;
-    L.marker([lat, lng], { icon })
+    L.marker([p.lat, p.lng], { icon })
       .bindPopup(buildPopup(p), { maxWidth: 320 })
       .addTo(markerLayer);
   });
 
   countEl.textContent = `${data.length} provider${data.length !== 1 ? "s" : ""}`;
 
-  if (mappable.length && !initialBoundsFit) {
-    map.fitBounds(mappable.map(({ lat, lng }) => [lat, lng] as [number, number]), { padding: [40, 40] });
+  if (pinnable.length && !initialBoundsFit) {
+    map.fitBounds(pinnable.map((p) => [p.lat, p.lng] as [number, number]), { padding: [40, 40] });
     initialBoundsFit = true;
   }
 }
+
+// ─── Filter ───────────────────────────────────────────────────────────────────
 
 function applyFilter(): void {
   const val = birthdayEl.value;
   if (!val) {
     ageLabelEl.style.display = "none";
     clearBtn.style.display = "none";
-    setOverlay("<strong>Enter your child's birthday</strong>Use the picker above to find matching daycares.");
-    countEl.textContent = `${allData.length} provider${allData.length !== 1 ? "s" : ""}`;
-    markerLayer.clearLayers();
     initialBoundsFit = false;
     renderMarkers(allData);
     return;
@@ -129,9 +135,10 @@ birthdayEl.addEventListener("change", applyFilter);
 
 clearBtn.addEventListener("click", () => {
   birthdayEl.value = "";
-  initialBoundsFit = false;
   applyFilter();
 });
+
+// ─── Data loading ─────────────────────────────────────────────────────────────
 
 setOverlay("Loading…");
 
@@ -141,25 +148,42 @@ Promise.all([
       if (!r.ok) throw new Error("processed_data/geocoded_vacancies.csv not found — run geocode_vacancies.py first.");
       return r.text();
     })
-    .then((text) => parseCSV(text).map((p): MapEntry => ({ ...(p as Omit<MapEntry, "_source">), _source: "auto" }))),
+    .then((text) =>
+      parseCSV(text).map((row): MapEntry => ({
+        name:          row.name          ?? "",
+        address:       row.address       ?? "",
+        neighbourhood: row.neighbourhood ?? "",
+        phone:         row.phone         ?? "",
+        email:         row.email         ?? "",
+        website:       row.website       ?? "",
+        languages:     row.languages     ?? "",
+        age_groups:    row.age_groups    ?? "",
+        curriculum:    row.curriculum    ?? "",
+        contact_date:  row.contact_date  ?? "",
+        vacancies:     row.vacancies     ?? "",
+        lat:           row.lat  ? parseFloat(row.lat)  : null,
+        lng:           row.lng  ? parseFloat(row.lng)  : null,
+        _source:       "auto",
+      }))
+    ),
 
   fetch("processed_data/additional_vacancies.json?_=" + Date.now())
     .then((r) => (r.ok ? r.json() : []))
     .then((items: Vacancy[]) =>
       items
-        .filter((v) => v.lat && v.lng)
+        .filter((v) => v.lat !== null && v.lng !== null)
         .map((v): MapEntry => ({
-          name:          v.name ?? "",
-          address:       v.address ?? "",
-          neighbourhood: v.neighbourhood ?? "",
-          phone:         v.phone ?? "",
-          email:         v.email ?? "",
-          website:       v.website ?? "",
-          languages:     v.languages ?? "",
-          age_groups:    v.age_groups ?? "",
-          curriculum:    v.curriculum ?? "",
-          contact_date:  v.contact_date ?? "",
-          vacancies:     v.vacancies ?? "",
+          name:          v.name,
+          address:       v.address,
+          neighbourhood: v.neighbourhood,
+          phone:         v.phone,
+          email:         v.email,
+          website:       v.website,
+          languages:     v.languages,
+          age_groups:    v.age_groups,
+          curriculum:    v.curriculum,
+          contact_date:  v.contact_date,
+          vacancies:     v.vacancies,
           lat:           v.lat!,
           lng:           v.lng!,
           _source:       "manual",

@@ -59,6 +59,7 @@ function getSettings() {
 
 async function loadVacancies(): Promise<void> {
   try {
+    // Cache-bust so edits saved to GitHub are immediately visible on reload.
     const r = await fetch("processed_data/additional_vacancies.json?_=" + Date.now());
     vacancies = r.ok ? await r.json() : [];
   } catch {
@@ -128,7 +129,7 @@ function deleteVacancy(id: string): void {
   showStatus("Deleted — remember to save.", "info");
 }
 
-// ─── Modal ────────────────────────────────────────────────────────────────────
+// ─── Modal ───────────────────────────────────��────────────────────────────────
 
 function openModal(id: string | null = null): void {
   editingId = id;
@@ -157,17 +158,17 @@ function clearForm(): void {
 }
 
 function vacancyToForm(v: Vacancy): void {
-  (document.getElementById("f-name")         as HTMLInputElement).value = v.name ?? "";
-  (document.getElementById("f-address")      as HTMLInputElement).value = v.address ?? "";
-  (document.getElementById("f-neighbourhood")as HTMLInputElement).value = v.neighbourhood ?? "";
-  (document.getElementById("f-contact-date") as HTMLInputElement).value = v.contact_date ?? "";
-  (document.getElementById("f-phone")        as HTMLInputElement).value = v.phone ?? "";
-  (document.getElementById("f-email")        as HTMLInputElement).value = v.email ?? "";
-  (document.getElementById("f-website")      as HTMLInputElement).value = v.website ?? "";
-  (document.getElementById("f-languages")    as HTMLInputElement).value = v.languages ?? "";
-  (document.getElementById("f-age-groups")   as HTMLInputElement).value = v.age_groups ?? "";
-  (document.getElementById("f-curriculum")   as HTMLInputElement).value = v.curriculum ?? "";
-  (document.getElementById("f-vacancies")    as HTMLTextAreaElement).value = v.vacancies ?? "";
+  (document.getElementById("f-name")         as HTMLInputElement).value = v.name;
+  (document.getElementById("f-address")      as HTMLInputElement).value = v.address;
+  (document.getElementById("f-neighbourhood")as HTMLInputElement).value = v.neighbourhood;
+  (document.getElementById("f-contact-date") as HTMLInputElement).value = v.contact_date;
+  (document.getElementById("f-phone")        as HTMLInputElement).value = v.phone;
+  (document.getElementById("f-email")        as HTMLInputElement).value = v.email;
+  (document.getElementById("f-website")      as HTMLInputElement).value = v.website;
+  (document.getElementById("f-languages")    as HTMLInputElement).value = v.languages;
+  (document.getElementById("f-age-groups")   as HTMLInputElement).value = v.age_groups;
+  (document.getElementById("f-curriculum")   as HTMLInputElement).value = v.curriculum;
+  (document.getElementById("f-vacancies")    as HTMLTextAreaElement).value = v.vacancies;
   (document.getElementById("f-notes")        as HTMLTextAreaElement).value = v.notes ?? "";
   (document.getElementById("f-lat")          as HTMLInputElement).value = String(v.lat ?? "");
   (document.getElementById("f-lng")          as HTMLInputElement).value = String(v.lng ?? "");
@@ -229,8 +230,10 @@ async function geocodeAddress(): Promise<void> {
   statusEl.textContent = "Geocoding…";
 
   try {
+    // Append city context if not already present, matching the Python pipeline's behavior.
+    const fullAddr = /vancouver/i.test(addr) ? addr : addr + ", Vancouver, BC";
     const url = "https://geocoder.api.gov.bc.ca/addresses.json?addressString="
-      + encodeURIComponent(addr) + "&maxResults=1";
+      + encodeURIComponent(fullAddr) + "&maxResults=1";
     const r = await fetch(url);
     if (!r.ok) throw new Error("Geocoder returned " + r.status);
     const data = await r.json();
@@ -261,6 +264,12 @@ function downloadJSON(): void {
   URL.revokeObjectURL(a.href);
 }
 
+// Encodes a UTF-8 string to base64 without using the deprecated `unescape` function.
+function toBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  return btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""));
+}
+
 async function saveToGitHub(): Promise<void> {
   const { owner, repo, path, token } = getSettings();
   if (!token) { showStatus("No GitHub token — open Settings to configure it.", "err"); return; }
@@ -279,6 +288,7 @@ async function saveToGitHub(): Promise<void> {
   };
 
   try {
+    // Fetch the current file's SHA; required by the GitHub API to update an existing file.
     let sha: string | null = null;
     const getResp = await fetch(apiBase, { headers });
     if (getResp.ok) {
@@ -288,10 +298,7 @@ async function saveToGitHub(): Promise<void> {
       throw new Error(`GitHub GET failed: ${getResp.status} ${getResp.statusText}`);
     }
 
-    const content = btoa(unescape(encodeURIComponent(
-      JSON.stringify(vacancies, null, 2) + "\n"
-    )));
-
+    const content = toBase64(JSON.stringify(vacancies, null, 2) + "\n");
     const body = {
       message: `Update vacancies.json (${vacancies.length} entries)`,
       content,
