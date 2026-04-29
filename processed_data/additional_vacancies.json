@@ -90,6 +90,24 @@
   }
 ,
   {
+    "id": "m1745cf3",
+    "name": "Kidsrus Early Learning Center",
+    "address": "Main St & E 60th Ave, Vancouver, BC",
+    "neighbourhood": "Marpole",
+    "contact_date": "2026-04-29",
+    "phone": "",
+    "email": "",
+    "website": "kidsruschildcarecentre.com",
+    "languages": "English",
+    "age_groups": "0 - 36 mo",
+    "curriculum": "",
+    "vacancies": "1 spot available. Small group infant and toddler program. Enrolling mid-May 2026 onwards.",
+    "notes": "From Facebook/social media post. Contact via Facebook DM to book appointment. Facebook: https://www.facebook.com/profile.php?id=100039844492354. Open house held April 26, 2026. No exact street address — pinned to Main & E 60th Ave intersection.",
+    "lat": 49.2136,
+    "lng": -123.1007
+  }
+,
+  {
     "id": "m1745cf2",
     "name": "Luma Childcare",
     "address": "659 E St James Rd, North Vancouver, BC V7N 1L7",
