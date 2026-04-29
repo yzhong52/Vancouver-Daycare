@@ -1,5 +1,16 @@
 import "leaflet/dist/leaflet.css";
 import "./style.css";
+
+if (import.meta.env.PROD) {
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=G-GM16Z1VGT9";
+  document.head.appendChild(s);
+  (window as any).dataLayer = (window as any).dataLayer || [];
+  function gtag(...args: any[]) { (window as any).dataLayer.push(args); }
+  gtag("js", new Date());
+  gtag("config", "G-GM16Z1VGT9");
+}
 import L from "leaflet";
 import { esc, safeHref, parseCSV } from "../lib/utils";
 import { ageInMonths, formatAge, providerMatchesAge } from "../lib/age";
